@@ -59,13 +59,14 @@ class LeffaPredictor:
 
     def virtual_tryon(self, person_image_path, garment_image_path, garment_type="upper_body", steps=50, scale=2.5, seed=42):
         """
-        Virtual try-on with padding information for precise cropping
+        Virtual try-on with padding information for precise cropping and original resolution restoration
         """
-        # Load and preprocess images
+        # Load and store original size
         src_image = Image.open(person_image_path)
+        original_size = src_image.size  # Store original dimensions
         ref_image = Image.open(garment_image_path)
         
-        # Now returns tuple of (image, padding_info)
+        # Process at model's native resolution
         src_image, padding_info = resize_and_center(src_image, 768, 1024)
         ref_image, _ = resize_and_center(ref_image, 768, 1024)
         src_image_array = np.array(src_image)
@@ -110,18 +111,23 @@ class LeffaPredictor:
             seed=seed,
         )
 
-        # Handle the output correctly using padding info
+        # Handle the output correctly using padding info and restore original size
         if isinstance(output, dict) and "generated_image" in output:
             result = np.array(output["generated_image"][0])
             # Remove padding using the exact dimensions we know
             result = result[padding_info['top']:padding_info['bottom'], 
                            padding_info['left']:padding_info['right']]
-            return Image.fromarray(result)
+            # Convert to PIL and resize to original dimensions
+            final_image = Image.fromarray(result)
+            final_image = final_image.resize(original_size, Image.LANCZOS)
+            return final_image
         elif isinstance(output, np.ndarray):
             # Remove padding using the exact dimensions we know
             result = output[padding_info['top']:padding_info['bottom'], 
                            padding_info['left']:padding_info['right']]
-            return Image.fromarray(result)
+            # Convert to PIL and resize to original dimensions
+            final_image = Image.fromarray(result)
+            final_image = final_image.resize(original_size, Image.LANCZOS)
+            return final_image
         else:
             raise TypeError(f"Unexpected output type from inference: {type(output)}")
-    
