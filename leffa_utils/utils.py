@@ -21,17 +21,24 @@ def resize_and_center(image, target_width, target_height):
     new_width = int(original_width * scale)
 
     resized_img = cv2.resize(img, (new_width, new_height),
-                             interpolation=cv2.INTER_CUBIC)
+                            interpolation=cv2.INTER_CUBIC)
 
     padded_img = np.ones((target_height, target_width, 3),
-                         dtype=np.uint8) * 255
+                        dtype=np.uint8) * 255
 
     top = (target_height - new_height) // 2
     left = (target_width - new_width) // 2
 
     padded_img[top:top + new_height, left:left + new_width] = resized_img
 
-    return Image.fromarray(padded_img)
+    padding_info = {
+        'top': top,
+        'bottom': top + new_height,
+        'left': left,
+        'right': left + new_width
+    }
+
+    return Image.fromarray(padded_img), padding_info
 
 
 def list_dir(folder_path):
